@@ -22,6 +22,11 @@
             --green-dim: #123020;
             --red:       #f85149;
             --red-dim:   #3a1715;
+            /* Per-system accent colors (Jeeva = cyan, Nandhana = violet) */
+            --jeeva:      #22d3ee;
+            --jeeva-dim:  #0e3b47;
+            --nandhana:   #c084fc;
+            --nandhana-dim:#2c2340;
             --mono:      'JetBrains Mono', 'Cascadia Code', ui-monospace, 'SFMono-Regular', 'Consolas', monospace;
         }
 
@@ -367,6 +372,80 @@
         }
         .empty-main .big { font-size: 34px; margin-bottom: 10px; opacity: 0.6; }
 
+        /* ============ SYSTEMS (Jeeva / Nandhana) ============ */
+        /* Sidebar filter tabs */
+        .sys-filter { display: flex; gap: 6px; padding: 4px 16px 8px; }
+        .sys-filter button {
+            flex: 1;
+            padding: 6px 8px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            color: var(--text-dim);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: border-color .15s, color .15s, background .15s;
+        }
+        .sys-filter button:hover { border-color: var(--border-2); color: var(--text); }
+        .sys-filter button.active[data-sys="all"]      { border-color: var(--border-2); background: var(--panel-2); color: var(--text); }
+        .sys-filter button.active[data-sys="Jeeva"]     { border-color: var(--jeeva);    background: var(--jeeva-dim);    color: var(--jeeva); }
+        .sys-filter button.active[data-sys="Nandhana"]  { border-color: var(--nandhana); background: var(--nandhana-dim); color: var(--nandhana); }
+
+        /* Group header shown above each system's projects */
+        .sys-group-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 12px 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 700;
+        }
+        .sys-group-label .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .sys-group-label .count { margin-left: auto; font-weight: 600; color: var(--text-mut); letter-spacing: 0; text-transform: none; }
+        .sys-group-label.Jeeva    { color: var(--jeeva); }
+        .sys-group-label.Jeeva .dot    { background: var(--jeeva); }
+        .sys-group-label.Nandhana { color: var(--nandhana); }
+        .sys-group-label.Nandhana .dot { background: var(--nandhana); }
+
+        /* Colored left bar on each project item, by system */
+        .project-item.sys-Jeeva    { box-shadow: inset 3px 0 0 var(--jeeva); }
+        .project-item.sys-Nandhana { box-shadow: inset 3px 0 0 var(--nandhana); }
+
+        /* Small text badge inside each item / in the main pane */
+        .sys-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 8px;
+            border-radius: 5px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            vertical-align: middle;
+        }
+        .project-item .sys-badge { margin-bottom: 5px; }
+        .sys-badge.Jeeva    { color: var(--jeeva);    background: var(--jeeva-dim); }
+        .sys-badge.Nandhana { color: var(--nandhana); background: var(--nandhana-dim); }
+
+        /* System picker in the Add form (mirrors the OS selector) */
+        .sys-selector { display: inline-flex; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+        .sys-opt {
+            padding: 8px 20px; background: transparent; border: none; border-radius: 6px;
+            color: var(--text-dim); font-weight: 600; font-size: 12.5px; cursor: pointer;
+            transition: background .15s, color .15s;
+        }
+        .sys-opt.active[data-sys="Jeeva"]    { background: var(--jeeva-dim);    color: var(--jeeva); }
+        .sys-opt.active[data-sys="Nandhana"] { background: var(--nandhana-dim); color: var(--nandhana); }
+
+        /* Purpose / Folder details shown in the main pane */
+        .proj-meta { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        .proj-meta:empty { display: none; }
+        .proj-meta > div { display: flex; gap: 14px; font-size: 13.5px; align-items: baseline; }
+        .proj-meta .k { min-width: 62px; color: var(--text-mut); text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; font-weight: 700; }
+        .proj-meta .v { color: var(--text); }
+
         /* scrollbars */
         ::-webkit-scrollbar { width: 10px; height: 10px; }
         ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 6px; border: 2px solid var(--bg-2); }
@@ -481,6 +560,12 @@
                 <input type="text" id="searchBox" class="search-box" placeholder="Search projects…">
             </div>
 
+            <div class="sys-filter" id="sysFilter">
+                <button type="button" class="active" data-sys="all">All</button>
+                <button type="button" data-sys="Jeeva">Jeeva</button>
+                <button type="button" data-sys="Nandhana">Nandhana</button>
+            </div>
+
             <div class="list-label">Your Projects</div>
             <div id="projectsList" class="project-list">
                 <div class="empty-list">No projects yet.<br>Add one to get started.</div>
@@ -508,19 +593,30 @@
                 <section class="card">
                     <div class="card-title"><span class="dot"></span> Add New Project</div>
                     <form id="addProjectForm">
+                        <div class="form-group full">
+                            <label>System</label>
+                            <div class="sys-selector" id="addSysSelector">
+                                <button type="button" class="sys-opt active" data-sys="Jeeva">Jeeva</button>
+                                <button type="button" class="sys-opt" data-sys="Nandhana">Nandhana</button>
+                            </div>
+                        </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="projectName">Project Name</label>
-                                <input type="text" id="projectName" placeholder="e.g., Marketing Assets" required>
+                                <input type="text" id="projectName" placeholder="e.g., Analysis Count monitor" required>
                             </div>
-                            <div class="form-group path">
-                                <label for="projectPath">Folder Path</label>
-                                <input type="text" id="projectPath" placeholder="C:\Users\Name\Projects\Marketing" required>
+                            <div class="form-group">
+                                <label for="projectFolder">Folder</label>
+                                <input type="text" id="projectFolder" placeholder="e.g., Documents">
                             </div>
                         </div>
                         <div class="form-group full">
-                            <label for="projectNotes">Key Files / Folders (optional)</label>
-                            <textarea id="projectNotes" placeholder="Brand guidelines in /Brand&#10;Graphics in /Assets"></textarea>
+                            <label for="projectPurpose">Purpose</label>
+                            <input type="text" id="projectPurpose" placeholder="What this project is for">
+                        </div>
+                        <div class="form-group full path">
+                            <label for="projectPath">Path</label>
+                            <input type="text" id="projectPath" placeholder="C:\Users\Admin\OneDrive\Documents\Anderson Projects\analysis-count" required>
                         </div>
                         <button type="submit" class="btn-primary">+ Add Project</button>
                     </form>
@@ -535,6 +631,8 @@
                             <button class="os-btn" data-os="mac">Mac</button>
                         </div>
                     </div>
+
+                    <div class="proj-meta" id="projMeta"></div>
 
                     <div id="instructionsContent"></div>
 
@@ -686,12 +784,26 @@
         // ===== Google Sheet integration =====
         // After deploying the Apps Script (see Project_Navigator_AppsScript.gs),
         // paste your Web App URL (ends with /exec) between the quotes below.
-        const SHEET_WEBAPP_URL = '';
+        const SHEET_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwTbxyWBKnK84tnwUQWkc3vJcRoMb8Jntcrn1QmxtKK-fD4HSEwRQ7Y4UBzNUlQyID-rQ/exec';
+
+        // The two systems this navigator tracks. Each has its own tab in the
+        // live Google Sheet and its own colour/label on this page.
+        const SYSTEMS = ['Jeeva', 'Nandhana'];
+        const DEFAULT_SYSTEM = 'Jeeva';
 
         let projects = JSON.parse(localStorage.getItem('projects')) || [];
+        // Migrate older records saved before multi-system / column changes.
+        projects.forEach(p => {
+            if (SYSTEMS.indexOf(p.system) === -1) p.system = DEFAULT_SYSTEM;
+            if (p.purpose === undefined) p.purpose = p.notes || '';
+            if (p.folder === undefined) p.folder = '';
+        });
+
         let selectedProjectId = null;
         let selectedOS = 'windows';
         let searchQuery = '';
+        let addSystem = DEFAULT_SYSTEM;   // system chosen in the Add form
+        let systemFilter = 'all';         // sidebar filter: 'all' | 'Jeeva' | 'Nandhana'
 
         function setSyncStatus(msg, color) {
             const el = document.getElementById('syncStatus');
@@ -719,25 +831,28 @@
             }
         }
 
-        // Push a single project to the sheet.
+        // Push a single project to the sheet. The `system` field tells the
+        // Apps Script which tab (Jeeva / Nandhana) to append the row to.
         async function syncToSheet(project) {
             setSyncStatus('Syncing…', '#22d3ee');
             const ok = await postToSheet({
+                system: project.system,
                 name: project.name,
-                path: project.path,
-                notes: project.notes || ''
+                purpose: project.purpose || '',
+                folder: project.folder || '',
+                path: project.path
             });
-            if (ok) setSyncStatus('✓ Saved to Sheet', '#3fb950');
+            if (ok) setSyncStatus('✓ Saved to ' + project.system + ' sheet', '#3fb950');
         }
 
-        // Push every stored project to the sheet.
+        // Push every stored project to the sheet (each routed to its system tab).
         async function syncAllToSheet() {
             if (projects.length === 0) { setSyncStatus('No projects to sync', 'var(--text-dim)'); return; }
             setSyncStatus('Syncing all…', '#22d3ee');
             const ok = await postToSheet(projects.map(p => ({
-                name: p.name, path: p.path, notes: p.notes || ''
+                system: p.system, name: p.name, purpose: p.purpose || '', folder: p.folder || '', path: p.path
             })));
-            if (ok) setSyncStatus('✓ Sent ' + projects.length + ' project(s) to Sheet', '#3fb950');
+            if (ok) setSyncStatus('✓ Sent ' + projects.length + ' project(s) to their sheets', '#3fb950');
         }
 
         function saveProjects() {
@@ -750,7 +865,8 @@
             }[c]));
         }
 
-        // Render project list in the sidebar
+        // Render project list in the sidebar, grouped by system so the two
+        // are easy to tell apart, and respecting the search + system filter.
         function renderProjects() {
             const projectsList = document.getElementById('projectsList');
 
@@ -759,23 +875,36 @@
                 return;
             }
 
-            const filtered = projects.filter(p =>
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                p.path.toLowerCase().includes(searchQuery.toLowerCase())
-            );
+            const q = searchQuery.toLowerCase();
+            const matches = p =>
+                (systemFilter === 'all' || p.system === systemFilter) &&
+                (p.name.toLowerCase().includes(q) || p.path.toLowerCase().includes(q));
+
+            const filtered = projects.filter(matches);
 
             if (filtered.length === 0) {
-                projectsList.innerHTML = '<div class="empty-list">No projects matching<br>"' + escapeHtml(searchQuery) + '"</div>';
+                projectsList.innerHTML = '<div class="empty-list">No projects matching<br>your search / filter.</div>';
                 return;
             }
 
-            projectsList.innerHTML = filtered.map(project => `
-                <div class="project-item ${selectedProjectId === project.id ? 'active' : ''}" onclick="selectProject('${project.id}')">
+            const itemHtml = project => `
+                <div class="project-item sys-${project.system} ${selectedProjectId === project.id ? 'active' : ''}" onclick="selectProject('${project.id}')">
+                    <span class="sys-badge ${project.system}">${project.system}</span>
                     <div class="project-name">${escapeHtml(project.name)}</div>
                     <div class="project-path">${escapeHtml(project.path)}</div>
                     ${selectedProjectId === project.id ? `<button class="delete-btn" onclick="deleteProject('${project.id}', event)">Delete project</button>` : ''}
-                </div>
-            `).join('');
+                </div>`;
+
+            // One labelled, colour-coded group per system.
+            const systemsToShow = systemFilter === 'all' ? SYSTEMS : [systemFilter];
+            let html = '';
+            systemsToShow.forEach(sys => {
+                const items = filtered.filter(p => p.system === sys);
+                if (items.length === 0) return;
+                html += `<div class="sys-group-label ${sys}"><span class="dot"></span>${sys}<span class="count">${items.length}</span></div>`;
+                html += items.map(itemHtml).join('');
+            });
+            projectsList.innerHTML = html;
         }
 
         // Add new project
@@ -783,10 +912,11 @@
             e.preventDefault();
 
             const name = document.getElementById('projectName').value;
+            const folder = document.getElementById('projectFolder').value;
+            const purpose = document.getElementById('projectPurpose').value;
             const path = document.getElementById('projectPath').value;
-            const notes = document.getElementById('projectNotes').value;
 
-            const newProject = { id: Date.now().toString(), name, path, notes };
+            const newProject = { id: Date.now().toString(), system: addSystem, name, purpose, folder, path };
 
             projects.push(newProject);
             saveProjects();
@@ -824,8 +954,14 @@
             const project = projects.find(p => p.id === selectedProjectId);
             if (!project) return;
 
-            document.getElementById('selectedProjectName').textContent = project.name;
+            document.getElementById('selectedProjectName').innerHTML =
+                '<span class="sys-badge ' + project.system + '">' + project.system + '</span> ' + escapeHtml(project.name);
             document.getElementById('pathDisplay').textContent = project.path;
+
+            const meta = [];
+            if (project.folder)  meta.push('<div><span class="k">Folder</span><span class="v">' + escapeHtml(project.folder) + '</span></div>');
+            if (project.purpose) meta.push('<div><span class="k">Purpose</span><span class="v">' + escapeHtml(project.purpose) + '</span></div>');
+            document.getElementById('projMeta').innerHTML = meta.join('');
 
             const steps = (open, addressStep, pasteKey) => `
                 <div class="instructions-steps">
@@ -877,6 +1013,25 @@
             btn.addEventListener('click', () => {
                 selectedOS = btn.dataset.os;
                 showInstructions();
+            });
+        });
+
+        // System picker in the Add form
+        document.querySelectorAll('#addSysSelector .sys-opt').forEach(btn => {
+            btn.addEventListener('click', () => {
+                addSystem = btn.dataset.sys;
+                document.querySelectorAll('#addSysSelector .sys-opt').forEach(b =>
+                    b.classList.toggle('active', b === btn));
+            });
+        });
+
+        // Sidebar system filter (All / Jeeva / Nandhana)
+        document.querySelectorAll('#sysFilter button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                systemFilter = btn.dataset.sys;
+                document.querySelectorAll('#sysFilter button').forEach(b =>
+                    b.classList.toggle('active', b === btn));
+                renderProjects();
             });
         });
 

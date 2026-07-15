@@ -87,10 +87,22 @@ function doPost(e) {
   }
 }
 
-// Optional: lets you open the /exec URL in a browser to confirm it is live.
+// Called by the web page on load to pull in rows added directly in the
+// Sheet (e.g. typed in by hand) that the page doesn't know about yet.
 function doGet() {
+  var ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  var projects = [];
+  SYSTEMS.forEach(function (sys) {
+    var sheet = ss.getSheetByName(sys);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 4).getValues();
+    rows.forEach(function (row) {
+      if (!row[0]) return; // skip blank rows
+      projects.push({ system: sys, name: row[0], purpose: row[1], folder: row[2], path: row[3] });
+    });
+  });
   return ContentService
-    .createTextOutput(JSON.stringify({ result: 'ok', message: 'Project Navigator endpoint is live.' }))
+    .createTextOutput(JSON.stringify({ result: 'ok', projects: projects }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 

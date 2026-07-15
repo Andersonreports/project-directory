@@ -855,6 +855,39 @@
             if (ok) setSyncStatus('✓ Sent ' + projects.length + ' project(s) to their sheets', '#3fb950');
         }
 
+        // Key used to tell whether a row from the Sheet is already known locally.
+        function projectKey(p) {
+            return [p.system, p.name, p.path].join('|');
+        }
+
+        // Pull rows from the Sheet (e.g. typed in by hand) that aren't in the
+        // local list yet, so the page and the Sheet stay in sync both ways.
+        async function loadFromSheet() {
+            if (!SHEET_WEBAPP_URL) return;
+            try {
+                const res = await fetch(SHEET_WEBAPP_URL);
+                const data = await res.json();
+                const known = new Set(projects.map(projectKey));
+                const incoming = (data.projects || []).filter(p => !known.has(projectKey(p)));
+                if (incoming.length === 0) return;
+                incoming.forEach((p, i) => {
+                    projects.push({
+                        id: Date.now().toString() + '_' + i,
+                        system: SYSTEMS.indexOf(p.system) === -1 ? DEFAULT_SYSTEM : p.system,
+                        name: p.name || '',
+                        purpose: p.purpose || '',
+                        folder: p.folder || '',
+                        path: p.path || ''
+                    });
+                });
+                saveProjects();
+                renderProjects();
+                setSyncStatus('✓ Pulled ' + incoming.length + ' project(s) from the sheet', '#3fb950');
+            } catch (err) {
+                setSyncStatus('✗ Could not load from sheet', '#f85149');
+            }
+        }
+
         function saveProjects() {
             localStorage.setItem('projects', JSON.stringify(projects));
         }
@@ -1058,6 +1091,7 @@
 
         // Initial render
         renderProjects();
+        loadFromSheet();
 
         // Passcode gate — must run last (after its UI + buttons exist)
         AUTH.init();

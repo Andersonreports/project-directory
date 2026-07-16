@@ -300,42 +300,6 @@
         }
         .nav-head .sel-name { font-size: 16px; font-weight: 600; color: var(--accent); }
 
-        .os-selector { display: inline-flex; background: var(--bg-2); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
-        .os-btn {
-            padding: 6px 16px;
-            background: transparent;
-            border: none;
-            border-radius: 6px;
-            color: var(--text-dim);
-            font-weight: 600;
-            font-size: 12.5px;
-            cursor: pointer;
-            transition: background .15s, color .15s;
-        }
-        .os-btn.active { background: var(--accent-dim); color: var(--accent); }
-
-        .instructions-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
-        .step {
-            display: flex;
-            gap: 14px;
-            padding: 14px;
-            background: var(--bg-2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-        }
-        .step-number {
-            min-width: 30px; width: 30px; height: 30px;
-            background: var(--accent-dim);
-            color: var(--accent);
-            border: 1px solid var(--accent-2);
-            border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; font-size: 13px;
-        }
-        .step-content h3 { color: var(--text); margin-bottom: 3px; font-size: 13.5px; font-weight: 600; }
-        .step-content p { color: var(--text-dim); font-size: 13px; margin: 0; }
-        .step-content strong { color: var(--accent); font-weight: 600; }
-
         .path-panel { border-top: 1px solid var(--border); padding-top: 18px; }
         .path-panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-mut); margin-bottom: 10px; }
         .path-box {
@@ -585,7 +549,7 @@
         <main class="main">
             <div class="topbar">
                 <h2>Add &amp; Navigate</h2>
-                <p>Store a project path, then get step-by-step navigation instructions.</p>
+                <p>Store project paths and jump to them fast.</p>
             </div>
 
             <div class="main-inner">
@@ -622,22 +586,16 @@
                     </form>
                 </section>
 
-                <!-- Navigation Instructions -->
+                <!-- Project details -->
                 <section id="instructionsSection" class="card nav-card hidden">
                     <div class="nav-head">
                         <div class="sel-name" id="selectedProjectName"></div>
-                        <div class="os-selector">
-                            <button class="os-btn active" data-os="windows">Windows</button>
-                            <button class="os-btn" data-os="mac">Mac</button>
-                        </div>
                     </div>
 
                     <div class="proj-meta" id="projMeta"></div>
 
-                    <div id="instructionsContent"></div>
-
                     <div class="path-panel">
-                        <h3>Path to copy</h3>
+                        <h3>Path</h3>
                         <div class="path-box" id="pathDisplay"></div>
                         <button class="copy-btn" onclick="copyToClipboard()">📋 Copy Path</button>
                     </div>
@@ -646,7 +604,7 @@
                 <!-- Empty state (shown when nothing selected) -->
                 <div id="emptyMain" class="empty-main">
                     <div class="big">🧭</div>
-                    Select a project from the left to see navigation instructions,<br>or add a new one above.
+                    Select a project from the left to view its path,<br>or add a new one above.
                 </div>
             </div>
         </main>
@@ -800,7 +758,6 @@
         });
 
         let selectedProjectId = null;
-        let selectedOS = 'windows';
         let searchQuery = '';
         let addSystem = DEFAULT_SYSTEM;   // system chosen in the Add form
         let systemFilter = 'all';         // sidebar filter: 'all' | 'Jeeva' | 'Nandhana'
@@ -964,9 +921,8 @@
 
         function selectProject(id) {
             selectedProjectId = id;
-            selectedOS = 'windows';
             renderProjects();
-            showInstructions();
+            showProjectDetails();
         }
 
         function deleteProject(id, event) {
@@ -981,7 +937,7 @@
             }
         }
 
-        function showInstructions() {
+        function showProjectDetails() {
             if (!selectedProjectId) return;
 
             const project = projects.find(p => p.id === selectedProjectId);
@@ -996,58 +952,9 @@
             if (project.purpose) meta.push('<div><span class="k">Purpose</span><span class="v">' + escapeHtml(project.purpose) + '</span></div>');
             document.getElementById('projMeta').innerHTML = meta.join('');
 
-            const steps = (open, addressStep, pasteKey) => `
-                <div class="instructions-steps">
-                    <div class="step">
-                        <div class="step-number">1</div>
-                        <div class="step-content"><h3>${open.h}</h3><p>${open.p}</p></div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">2</div>
-                        <div class="step-content"><h3>${addressStep.h}</h3><p>${addressStep.p}</p></div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">3</div>
-                        <div class="step-content"><h3>Copy the path</h3><p>Click <strong>Copy Path</strong> below to copy it to your clipboard.</p></div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">4</div>
-                        <div class="step-content"><h3>Paste the path</h3><p>Right-click and choose Paste, or press <strong>${pasteKey}</strong>.</p></div>
-                    </div>
-                    <div class="step">
-                        <div class="step-number">5</div>
-                        <div class="step-content"><h3>Navigate</h3><p>Press <strong>Enter</strong> to jump straight to the folder.</p></div>
-                    </div>
-                </div>
-            `;
-
-            const windowsSteps = steps(
-                { h: 'Open File Explorer', p: 'Click the File Explorer icon in your taskbar.' },
-                { h: 'Focus the address bar', p: 'Press <strong>Ctrl + L</strong> to select the address bar at the top.' },
-                'Ctrl + V'
-            );
-            const macSteps = steps(
-                { h: 'Open Finder', p: 'Click the Finder icon in your dock.' },
-                { h: 'Reveal the path bar', p: 'Press <strong>Cmd + L</strong> to reveal the path bar.' },
-                'Cmd + V'
-            );
-
-            document.getElementById('instructionsContent').innerHTML = selectedOS === 'windows' ? windowsSteps : macSteps;
             document.getElementById('instructionsSection').classList.remove('hidden');
             document.getElementById('emptyMain').style.display = 'none';
-
-            document.querySelectorAll('.os-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.os === selectedOS);
-            });
         }
-
-        // OS selector
-        document.querySelectorAll('.os-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                selectedOS = btn.dataset.os;
-                showInstructions();
-            });
-        });
 
         // System picker in the Add form
         document.querySelectorAll('#addSysSelector .sys-opt').forEach(btn => {
